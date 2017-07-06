@@ -1,0 +1,8 @@
+name: OpenCalais API
+type: module
+description: "Integration module for the OpenCalais Web Service API."
+core: 8.x
+package: OpenCalais
+
+dependencies:
+  - libraries

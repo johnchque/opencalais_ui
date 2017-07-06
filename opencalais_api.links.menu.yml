@@ -1,0 +1,5 @@
+opencalais.settings:
+  title: 'OpenCalais'
+  parent: system.admin_config_content
+  description: 'Configure Settings for OpenCalais integration.'
+  route_name: opencalais.general_settings

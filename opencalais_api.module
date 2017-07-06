@@ -1,0 +1,154 @@
+<?php
+
+// $Id$
+/*
+  Copyright (C) 2010 by Phase2 Technology.
+  Author(s): Frank Febbraro, Irakli Nadareishvili
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
+ */
+/**
+ * @file
+ */
+use Drupal\opencalais_api\Form\CalaisService;
+
+/**
+ * Implements hook_init().
+ */
+function opencalais_api_init() {
+  if (!class_exists('ARC2')) {
+    @include_once libraries_get_path('arc') . '/ARC2.php';
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ * Add ajax callbacks to the opencalais fields
+ */
+function opencalais_api_form_node_form_alter(&$form, &$form_state, $form_id) {
+  $form['actions']['suggest_tags'] = [
+    '#type' => 'submit',
+    '#value' => t('Suggest Tags'),
+    '#attributes' => ['class' => ['opencalais_submit']],
+    '#weight' => 100,
+    '#submit' => ['opencalais_api_suggest_tags_submit'],
+    '#ajax' => [
+      'callback' => 'opencalais_api_suggest_tags_callback',
+      'effect' => 'fade',
+    ],
+  ];
+
+}
+
+function opencalais_api_suggest_tags_callback($form, &$form_state, $norebuild = FALSE) {
+  $analised_text = opencalais_api_analyze($form['body']);
+
+}
+
+/**
+ * Get the service implementing the Calais interface.
+ */
+function opencalais_api_get_service($options = array(), $type = NULL) {
+  return new \Drupal\opencalais_api\CalaisService($options);
+}
+
+/**
+ *
+ * Checks if Calais API Key is set
+ *
+ * @param $show_warning
+ *   Whether to display a warning
+ * @return bool
+ *   Whether the key is set or not.
+ */
+function is_opencalais_api_key_set($show_warning = TRUE) {
+  $config = \Drupal::config('opencalais_api.settings');
+  $apikey = $config->get('api_key');
+  if ($apikey != '') {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/**
+ * Analyze the content via Calais.
+ *
+ * @param $content The content to ship off to Calais for analysis
+ * @param $parameters Array of Calais parameters for overriding defaults.
+ * @see http://www.opencalais.com/APIcalls#inputparameters
+ *
+ * @return array
+ *   The analyzed content
+ */
+function opencalais_api_analyze($content, $parameters = array()) {
+  if (!is_opencalais_api_key_set()) {
+    return array();
+  }
+
+  $opencalais = opencalais_api_get_service($parameters);
+  return $opencalais->analyze($content);
+}
+
+/**
+ * Analyze the content via the Calais XML interface.
+ *
+ * @param $title The title of the content
+ * @param $body The entire body of the content
+ * @param $date The date of the content (can be created or updated date)
+ *    This date is used to base calculations of words like "tomorrow" or "yesterday"
+ * @param $parameters Array of Calais parameters for overriding defaults.
+ * @see http://www.opencalais.com/APIcalls#inputparameters
+ *
+ * @return array
+ *   The analyzed content
+ */
+function opencalais_api_analyze_xml($title, $body, $date, $parameters = array()) {
+  if (!is_opencalais_api_key_set()) {
+    return array();
+  }
+
+  $opencalais = opencalais_api_get_service($parameters);
+  return $opencalais->analyzeXML($title, $body, $date);
+}
+
+/**
+ * Takes a 'CamelCase'' word and adds spaces to make it 'Camel Case'
+ *
+ * @return an formated string
+ */
+function opencalais_api_make_readable($camel_case) {
+  return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
+}
+
+/**
+ * Takes a 'CamelCase' word and makes it 'camel_case'
+ *
+ * @return string
+ *   A formatted string
+ */
+function opencalais_api_make_machine($camel_case) {
+  $name = preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1}_${2}', $camel_case);
+  return strtolower($name);
+}
+
+/**
+ * Implements hook_namespaces().
+ *
+ * Declare the Calais namespaces for RDF/RDFa support.
+ */
+function opencalais_api_rdf_namespaces() {
+  return array(
+    'c' => 'http://s.opencalais.com/1/pred/',
+    'sys' => 'http://s.opencalais.com/1/type/sys/',
+    'lid' => 'http://s.opencalais.com/1/type/lid/',
+    'cat' => 'http://s.opencalais.com/1/type/cat/',
+    'resolved' => 'http://s.opencalais.com/1/type/er/',
+    'cgeo' => 'http://s.opencalais.com/1/type/er/Geo/',
+    'eventfact' => 'http://s.opencalais.com/1/type/em/r/',
+    'entity' => 'http://s.opencalais.com/1/type/em/e/',
+    'cld' => "http://s.opencalais.com/1/linkeddata/pred/",
+  );
+}
