@@ -13,7 +13,7 @@
 /**
  * @file
  */
-use Drupal\opencalais_api\Form\CalaisService;
+use Drupal\opencalais_api\CalaisService;
 
 /**
  * Implements hook_init().
@@ -44,7 +44,7 @@ function opencalais_api_form_node_form_alter(&$form, &$form_state, $form_id) {
 }
 
 function opencalais_api_suggest_tags_callback($form, &$form_state, $norebuild = FALSE) {
-  $analised_text = opencalais_api_analyze($form['body']);
+  $analised_text = opencalais_api_analyze($form_state->getValue('body')[0]['value']);
 
 }
 

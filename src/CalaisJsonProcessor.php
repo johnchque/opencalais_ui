@@ -1,15 +1,14 @@
 <?php
+
 namespace Drupal\opencalais_api;
 
-// $Id$
 use Drupal\Component\Utility\Unicode;
 
 /**
  * @file CalaisRdfProcessor.inc
  *  The parser for the Calais RDF/XML responses.
  */
-
-class CalaisRdfProcessor {
+class CalaisJsonProcessor {
   
   const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
   const CALAIS_SUBJECT = 'http://s.opencalais.com/1/pred/subject';
@@ -25,52 +24,16 @@ class CalaisRdfProcessor {
    * is required b/c sometimes the relevance/geo data appears in the document before the term
    * has been identified.
    *
-   * @param $rdf_xml
-   *    The RDF to parse
-   * @return
+   * @param $json
+   *    The json to parse
+   * @return array
    *    An array of CalaisMetadata objects.
-   * @see 
-   *    CalaisMetadata.inc
    */
-  public function parse_rdf($rdf_xml) {
-    $parser = ARC2::getRDFXMLParser();
-    $parser->parse(NULL, $rdf_xml);
-    $this->triples = $parser->getSimpleIndex();
-    if (function_exists('_rdf_deconstruct_arc2_triple')) {
-      $this->flatTriples = array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
-    }
-
-    $this->keywords = new stdClass();
-    $this->extract_document();
+  public function parse_json($json) {
+    $this->document = json_decode($json, true);
     $this->build_entities($this->keywords);
     $this->extract_entity_metadata($this->keywords);
     return $this->keywords;
-  }
-
-  /**
-   * Build the set of entities from this RDF triples returned from Calais.
-   *
-   * @param $keywords 
-   *    The object containing type keyed CalaisMetadata
-   */
-  protected function extract_document() {
-    foreach ($this->triples as $guid => $data) {
-      $type = $data[self::RDF_TYPE];
-      if (isset($type) && $type[0] == 'http://s.opencalais.com/1/type/sys/DocInfo') {
-        $this->document = $data['http://s.opencalais.com/1/pred/document'][0];
-        $this->document = preg_replace('/<!\[CDATA\[/ims', '', $this->document);
-        $this->document = preg_replace('/\]\]>/ims', '', $this->document);
-        if (preg_match('@<BODY>(.*)</BODY>@ims', $this->document, $matches) > 0) {
-          if (count($matches) == 4) {
-            $this->document = $matches[2];
-          }
-          else {
-            $this->document = $matches[1];
-          }
-        }
-        return;
-      }
-    }
   }
 
   /**
@@ -83,9 +46,9 @@ class CalaisRdfProcessor {
     foreach ($this->triples as $guid => $data) {
       if (!isset($data[self::RDF_TYPE]))
           continue;
-          
+
       $type = $data[self::RDF_TYPE];
-       
+
       if (strpos($type[0], "http://s.opencalais.com/1/type/em/e") !== FALSE) {
         $this->extract_entities($keywords, $type, $guid, $data);
       }
