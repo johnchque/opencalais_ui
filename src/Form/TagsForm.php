@@ -1,12 +1,12 @@
 <?php
 
-namespace Drupal\opencalais_api\Form;
+namespace Drupal\opencalais_ui\Form;
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\NodeType;
-use Drupal\opencalais_api\CalaisService;
+use Drupal\opencalais_ui\CalaisService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -17,7 +17,7 @@ class TagsForm extends FormBase {
   /**
    * The OpenCalais service.
    *
-   * @var \Drupal\opencalais_api\CalaisService
+   * @var \Drupal\opencalais_ui\CalaisService
    */
   protected $calaisService;
 
@@ -31,11 +31,11 @@ class TagsForm extends FormBase {
   /**
    * Constructs a RevisionOverviewForm object.
    *
-   * @param \Drupal\opencalais_api\CalaisService $calais_service
+   * @param \Drupal\opencalais_ui\CalaisService $calais_service
    *   The OpenCalais service.
    */
   public function __construct(CalaisService $calais_service) {
-    $this->config = $this->config('opencalais_api.settings');
+    $this->config = $this->config('opencalais_ui.settings');
     $this->calaisService = $calais_service;
   }
 
@@ -44,7 +44,7 @@ class TagsForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('opencalais_api.calais_service')
+      $container->get('opencalais_ui.calais_service')
     );
   }
 
@@ -52,7 +52,7 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'opencalais_api_tags';
+    return 'opencalais_ui_tags';
   }
 
   /**
@@ -63,7 +63,7 @@ class TagsForm extends FormBase {
     $display = EntityFormDisplay::collectRenderDisplay($node, 'default');
     $type = NodeType::load($node->getType());
     foreach ($display->getComponents() as $name => $options) {
-      if ($name == $type->getThirdPartySetting('opencalais_api', 'field') || $options['type'] == 'text_textarea_with_summary') {
+      if ($name == $type->getThirdPartySetting('opencalais_ui', 'field') || $options['type'] == 'text_textarea_with_summary') {
         continue;
       }
       $display->removeComponent($name);

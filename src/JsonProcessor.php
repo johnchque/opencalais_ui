@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\opencalais_api;
+namespace Drupal\opencalais_ui;
 
 class JsonProcessor {
 

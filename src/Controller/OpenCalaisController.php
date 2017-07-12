@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\opencalais_api\Controller;
+namespace Drupal\opencalais_ui\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\node\NodeInterface;
@@ -20,7 +20,7 @@ class OpenCalaisController extends ControllerBase {
    *   Table showing the diff between the two node revisions.
    */
   public function calaisTags(NodeInterface $node) {
-    return $this->formBuilder()->getForm('Drupal\opencalais_api\Form\TagsForm', $node);
+    return $this->formBuilder()->getForm('Drupal\opencalais_ui\Form\TagsForm', $node);
   }
 
 }

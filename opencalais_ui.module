@@ -13,7 +13,7 @@ use Drupal\node\NodeTypeInterface;
  * @return string
  *   A formated string
  */
-function opencalais_api_make_readable($camel_case) {
+function opencalais_ui_make_readable($camel_case) {
   return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
 }
 
@@ -28,28 +28,9 @@ function opencalais_make_machine_name($name) {
 }
 
 /**
- * Implements hook_namespaces().
- *
- * Declare the Calais namespaces for RDF/RDFa support.
- */
-function opencalais_api_rdf_namespaces() {
-  return array(
-    'c' => 'http://s.opencalais.com/1/pred/',
-    'sys' => 'http://s.opencalais.com/1/type/sys/',
-    'lid' => 'http://s.opencalais.com/1/type/lid/',
-    'cat' => 'http://s.opencalais.com/1/type/cat/',
-    'resolved' => 'http://s.opencalais.com/1/type/er/',
-    'cgeo' => 'http://s.opencalais.com/1/type/er/Geo/',
-    'eventfact' => 'http://s.opencalais.com/1/type/em/r/',
-    'entity' => 'http://s.opencalais.com/1/type/em/e/',
-    'cld' => "http://s.opencalais.com/1/linkeddata/pred/",
-  );
-}
-
-/**
  * Implements hook_form_FORM_ID_alter().
  */
-function opencalais_api_form_node_type_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+function opencalais_ui_form_node_type_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $options = [];
   $field_definitions = \Drupal::service('entity_field.manager')
     ->getFieldDefinitions('node', $form_state->getFormObject()
@@ -70,18 +51,18 @@ function opencalais_api_form_node_type_form_alter(&$form, FormStateInterface $fo
       '#description' => t('Field where to add taxonomy terms.'),
       '#type' => 'select',
       '#options' => $options,
-      '#default_value' => $form_state->getFormObject()->getEntity()->getThirdPartySetting('opencalais_api', 'field'),
+      '#default_value' => $form_state->getFormObject()->getEntity()->getThirdPartySetting('opencalais_ui', 'field'),
       '#empty_option' => t('None'),
     ];
   }
-  $form['#entity_builders'][] = 'opencalais_api_form_node_type_form_submit';
+  $form['#entity_builders'][] = 'opencalais_ui_form_node_type_form_submit';
 }
 
 /**
  * Entity builder for the node type form with opencalais fields.
  *
- * @see opencalais_api_form_node_type_form_alter()
+ * @see opencalais_ui_form_node_type_form_alter()
  */
-function opencalais_api_form_node_type_form_submit($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
-  $type->setThirdPartySetting('opencalais_api', 'field', $form_state->getValue('opencalais_field'));
+function opencalais_ui_form_node_type_form_submit($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
+  $type->setThirdPartySetting('opencalais_ui', 'field', $form_state->getValue('opencalais_field'));
 }

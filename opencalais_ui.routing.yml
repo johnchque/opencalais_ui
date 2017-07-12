@@ -1,4 +1,4 @@
-opencalais.general_settings:
+opencalais_ui.general_settings:
   path: '/admin/config/content/opencalais/general'
   defaults:
     _form: '\Drupal\opencalais_api\Form\GeneralSettingsForm'

@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\opencalais_api\Form;
+namespace Drupal\opencalais_ui\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -15,7 +15,7 @@ class GeneralSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'opencalais_api_general_settings';
+    return 'opencalais_ui_general_settings';
   }
 
   /**
@@ -23,7 +23,7 @@ class GeneralSettingsForm extends ConfigFormBase {
    */
   protected function getEditableConfigNames() {
     return [
-      'opencalais_api.settings',
+      'opencalais_ui.settings',
     ];
   }
 
@@ -31,7 +31,7 @@ class GeneralSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $field_type = NULL) {
-    $config = $this->config('opencalais_api.settings');
+    $config = $this->config('opencalais_ui.settings');
     $form['api_key'] = [
       '#type' => 'textfield',
       '#title' => t('OpenCalais API Key'),
@@ -65,7 +65,7 @@ class GeneralSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $config = $this->config('opencalais_api.settings');
+    $config = $this->config('opencalais_ui.settings');
     $keys = [
       'api_key',
       'api_server',

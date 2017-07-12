@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\opencalais_api;
+namespace Drupal\opencalais_ui;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\Client;
@@ -10,12 +10,12 @@ class CalaisService {
   /**
    * The OpenCalais Json Processor.
    *
-   * @var \Drupal\opencalais_api\JsonProcessor
+   * @var \Drupal\opencalais_ui\JsonProcessor
    */
   protected $jsonProcessor;
 
   /**
-   * Wrapper object for simple configuration from opencalais_api.settings.yml.
+   * Wrapper object for simple configuration from opencalais_ui.settings.yml.
    *
    * @var \Drupal\Core\Config\ImmutableConfig
    */
@@ -60,7 +60,7 @@ class CalaisService {
    * parameter name being the key and the parameter setting being the value
    * e.g. array('allowSearch' => 'false')
    *
-   * @param \Drupal\opencalais_api\JsonProcessor
+   * @param \Drupal\opencalais_ui\JsonProcessor
    *   The .
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
@@ -68,7 +68,7 @@ class CalaisService {
    *   The HTTP client.
    */
   public function __construct(JsonProcessor $json_processor, ConfigFactoryInterface $config_factory, Client $http_client) {
-    $this->config = $config_factory->get('opencalais_api.settings');
+    $this->config = $config_factory->get('opencalais_ui.settings');
     $this->jsonProcessor = $json_processor;
     $this->httpClient = $http_client;
     $this->parameters['externalID'] = time();
@@ -121,7 +121,7 @@ class CalaisService {
    *   Whether the api key is set or not.
    */
   public function apiKeySet() {
-    $config = \Drupal::config('opencalais_api.settings');
+    $config = \Drupal::config('opencalais_ui.settings');
     $api_key = $config->get('api_key');
     if ($api_key != '') {
       return TRUE;
