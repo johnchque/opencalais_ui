@@ -5,3 +5,15 @@ opencalais.general_settings:
     _title: OpenCalais General Settings
   requirements:
     _permission: 'administer site configuration'
+
+entity.node.opencalais_tags:
+  path: '/node/{node}/opencalais_tags'
+  defaults:
+    _entity_form: 'node.opencalais_tags'
+    _controller: '\Drupal\opencalais_api\Controller\OpenCalaisController::calaisTags'
+    _title: 'OpenCalais Tags'
+  requirements:
+    _permission: 'administer opencalais'
+    _entity_access: 'node.view'
+  options:
+    _node_operation_route: TRUE

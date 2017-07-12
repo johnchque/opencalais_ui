@@ -1,17 +1,39 @@
 <?php
+
 namespace Drupal\opencalais_api;
 
-// $Id: Calais.inc,v 1.1.2.16.2.2 2009/12/14 21:50:26 febbraro Exp $
-/**
- * @file CalaisService.php
- * The main interface to the calais web service
- */
+use Drupal\Core\Config\ConfigFactoryInterface;
+use GuzzleHttp\Client;
 
-class CalaisService implements Calais {
+class CalaisService {
 
-  const PATH = '/permid/calais';
+  /**
+   * The OpenCalais Json Processor.
+   *
+   * @var \Drupal\opencalais_api\JsonProcessor
+   */
+  protected $jsonProcessor;
 
-  private $defaults = array(
+  /**
+   * Wrapper object for simple configuration from opencalais_api.settings.yml.
+   *
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
+  protected $config;
+
+  /**
+   * The HTTP client.
+   *
+   * @var \GuzzleHttp\ClientInterface
+   */
+  protected $httpClient;
+
+  /**
+   * OpenCalais service default parameters.
+   *
+   * @var array
+   */
+  protected $parameters = [
     'protocol' => 'https',
     'contentType' => 'TEXT/HTML',
     'outputFormat' => 'XML/RDF',
@@ -22,60 +44,47 @@ class CalaisService implements Calais {
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
-  );
-
-  public $parameters;
-  public $rdf;
-  public $triples = array();
-  public $flatTriples = array();
-  public $keywords = array();
+  ];
 
   /**
-   * Constructs an instance of the Calais facade.
+   * OpenCalais service default path.
+   *
+   * @var string
+   */
+  protected $path = '/permid/calais';
+
+  /**
+   * Constructs a CalaisService object.
    *
    * Valid parameters are specified in the options array as key/value pairs with the
    * parameter name being the key and the parameter setting being the value
    * e.g. array('allowSearch' => 'false')
    *
-   * @param options  An array of parameter options for the Calais Web Service.
-   *                  These will override the defaults.
-   *
-   * @see http://opencalais.com/APIcalls#inputparameters
+   * @param \Drupal\opencalais_api\JsonProcessor
+   *   The .
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The configuration factory.
+   * @param \GuzzleHttp\Client $http_client
+   *   The HTTP client.
    */
-  function __construct() {
-    $this->defaults['externalID'] = time();
-    $this->defaults['host'] = \Drupal::config('opencalais_api.settings')
-      ->get('api_server');
-
-    $this->parameters = array_merge($this->defaults);
+  public function __construct(JsonProcessor $json_processor, ConfigFactoryInterface $config_factory, Client $http_client) {
+    $this->config = $config_factory->get('opencalais_api.settings');
+    $this->jsonProcessor = $json_processor;
+    $this->httpClient = $http_client;
+    $this->parameters['externalID'] = time();
+    $this->parameters['host'] = $this->config->get('api_server');
   }
 
   /**
-   * Analyze the provided content, passing it to Calais in XML format for more accurate data processing.
-   *
-   * @param $title  The title of the content to process
-   * @param $body   The body ofd the content to process
-   * @param $date   The date of the content, if left blank/null analysis will use "today"
-   *
-   * @return The processed Calais results. The raw RDF result is contained in the $this->rdf field.
-   */
-  public function analyzeXML($title, $body, $date) {
-    $content = $this->build_xml_content($title, $body, $date);
-    $this->parameters['contentType'] = 'TEXT/XML';
-    return $this->analyze($content);
-  }
-
-  /**
-   * Analyze the provided content, passing it to Calais in HTML format .
+   * Analyze the provided content, passing it to Calais in HTML format.
    *
    * @param $content
-   *    The HTML content to process
-   *
-   * @return
-   *    The processed Calais results. The raw RDF result is contained in the $this->rdf field.
+   *   The HTML content to process
+   * @return array
+   *   The processed Calais results.
    */
   public function analyzeHTML($content) {
-    $this->parameters['contentType'] = 'TEXT/HTML';
+    $this->parameters['contentType'] = 'text/html';
     return $this->analyze($content);
   }
 
@@ -84,33 +93,40 @@ class CalaisService implements Calais {
    *
    * @param $content
    *   The content to ship off to Calais for analysis
-   *
    * @return array
    *   The processed Calais results.
    */
   public function analyze($content) {
     $headers = [
       'Content-Type' => 'text/html',
-      'x-ag-access-token' => \Drupal::config('opencalais_api.settings')
-        ->get('api_key'),
+      'x-ag-access-token' => $this->config->get('api_key'),
       'outputFormat' => 'application/json',
     ];
-    //$data_enc = http_build_query(['content' => $content]);
-    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . self::PATH;
-    $req = array(
+    $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . $this->path;
+    $req = [
       'headers' => $headers,
       'body' => $content,
-    );
-    $response = \Drupal::httpClient()->post($uri, $req);
+    ];
+    $response = $this->httpClient->post($uri, $req);
     $ret = (string) $response->getBody();
 
-    $this->processor = new CalaisJsonProcessor();
-    $this->keywords = $this->processor->parse_json($ret);
-    $this->triples = $this->processor->triples;
-    if (isset($this->processor->flatTriples)) {
-      $this->flatTriples = $this->processor->flatTriples;
+    $keywords = $this->jsonProcessor->parse_json($ret);
+    return $keywords;
+  }
+
+  /**
+   * Checks if the Calais api key is set.
+   *
+   * @return bool
+   *   Whether the api key is set or not.
+   */
+  public function apiKeySet() {
+    $config = \Drupal::config('opencalais_api.settings');
+    $api_key = $config->get('api_key');
+    if ($api_key != '') {
+      return TRUE;
     }
-    return $this->keywords;
+    return FALSE;
   }
 
 }

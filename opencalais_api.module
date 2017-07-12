@@ -1,137 +1,30 @@
 <?php
 
-// $Id$
-/*
-  Copyright (C) 2010 by Phase2 Technology.
-  Author(s): Frank Febbraro, Irakli Nadareishvili
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License.
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY. See the LICENSE.txt file for more details.
- */
 /**
  * @file
  */
-use Drupal\opencalais_api\CalaisService;
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeTypeInterface;
 
 /**
- * Implements hook_init().
- */
-function opencalais_api_init() {
-  if (!class_exists('ARC2')) {
-    @include_once libraries_get_path('arc') . '/ARC2.php';
-  }
-}
-
-/**
- * Implements hook_form_BASE_FORM_ID_alter().
- * Add ajax callbacks to the opencalais fields
- */
-function opencalais_api_form_node_form_alter(&$form, &$form_state, $form_id) {
-  $form['actions']['suggest_tags'] = [
-    '#type' => 'submit',
-    '#value' => t('Suggest Tags'),
-    '#attributes' => ['class' => ['opencalais_submit']],
-    '#weight' => 100,
-    '#submit' => ['opencalais_api_suggest_tags_submit'],
-    '#ajax' => [
-      'callback' => 'opencalais_api_suggest_tags_callback',
-      'effect' => 'fade',
-    ],
-  ];
-
-}
-
-function opencalais_api_suggest_tags_callback($form, &$form_state, $norebuild = FALSE) {
-  $analised_text = opencalais_api_analyze($form_state->getValue('body')[0]['value']);
-
-}
-
-/**
- * Get the service implementing the Calais interface.
- */
-function opencalais_api_get_service($options = array(), $type = NULL) {
-  return new \Drupal\opencalais_api\CalaisService($options);
-}
-
-/**
+ * Takes a 'CamelCase'' word and adds spaces to make it 'Camel Case'.
  *
- * Checks if Calais API Key is set
- *
- * @param $show_warning
- *   Whether to display a warning
- * @return bool
- *   Whether the key is set or not.
- */
-function is_opencalais_api_key_set($show_warning = TRUE) {
-  $config = \Drupal::config('opencalais_api.settings');
-  $apikey = $config->get('api_key');
-  if ($apikey != '') {
-    return TRUE;
-  }
-  return FALSE;
-}
-
-/**
- * Analyze the content via Calais.
- *
- * @param $content The content to ship off to Calais for analysis
- * @param $parameters Array of Calais parameters for overriding defaults.
- * @see http://www.opencalais.com/APIcalls#inputparameters
- *
- * @return array
- *   The analyzed content
- */
-function opencalais_api_analyze($content, $parameters = array()) {
-  if (!is_opencalais_api_key_set()) {
-    return array();
-  }
-
-  $opencalais = opencalais_api_get_service($parameters);
-  return $opencalais->analyze($content);
-}
-
-/**
- * Analyze the content via the Calais XML interface.
- *
- * @param $title The title of the content
- * @param $body The entire body of the content
- * @param $date The date of the content (can be created or updated date)
- *    This date is used to base calculations of words like "tomorrow" or "yesterday"
- * @param $parameters Array of Calais parameters for overriding defaults.
- * @see http://www.opencalais.com/APIcalls#inputparameters
- *
- * @return array
- *   The analyzed content
- */
-function opencalais_api_analyze_xml($title, $body, $date, $parameters = array()) {
-  if (!is_opencalais_api_key_set()) {
-    return array();
-  }
-
-  $opencalais = opencalais_api_get_service($parameters);
-  return $opencalais->analyzeXML($title, $body, $date);
-}
-
-/**
- * Takes a 'CamelCase'' word and adds spaces to make it 'Camel Case'
- *
- * @return an formated string
+ * @return string
+ *   A formated string
  */
 function opencalais_api_make_readable($camel_case) {
   return preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1} ${2}', $camel_case);
 }
 
 /**
- * Takes a 'CamelCase' word and makes it 'camel_case'
- *
- * @return string
- *   A formatted string
+ * A Utility function used to turn any (mainly CamelCase) string into a valid machine name
  */
-function opencalais_api_make_machine($camel_case) {
-  $name = preg_replace('/(.*?[a-z]{1})([A-Z]{1}.*?)/', '${1}_${2}', $camel_case);
-  return strtolower($name);
+function opencalais_make_machine_name($name) {
+  $name = str_replace(' ', '_', $name);
+  $name = preg_replace('/([a-z])([A-Z])/', '$1_$2', $name);
+  $name = strtolower($name);
+  return $name;
 }
 
 /**
@@ -151,4 +44,44 @@ function opencalais_api_rdf_namespaces() {
     'entity' => 'http://s.opencalais.com/1/type/em/e/',
     'cld' => "http://s.opencalais.com/1/linkeddata/pred/",
   );
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function opencalais_api_form_node_type_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $options = [];
+  $field_definitions = \Drupal::service('entity_field.manager')
+    ->getFieldDefinitions('node', $form_state->getFormObject()
+      ->getEntity()
+      ->get('type'));
+
+  foreach ($field_definitions as $field_name => $field_definition) {
+    if ($field_definition->getType() == 'entity_reference') {
+      if ($field_definition->getFieldStorageDefinition()->getSetting('target_type') == 'taxonomy_term') {
+        $options[$field_definition->getName()] = $field_definition->getLabel();
+      }
+    }
+  }
+
+  if ($options) {
+    $form['opencalais_field'] = [
+      '#title' => t('OpenCalais Field'),
+      '#description' => t('Field where to add taxonomy terms.'),
+      '#type' => 'select',
+      '#options' => $options,
+      '#default_value' => $form_state->getFormObject()->getEntity()->getThirdPartySetting('opencalais_api', 'field'),
+      '#empty_option' => t('None'),
+    ];
+  }
+  $form['#entity_builders'][] = 'opencalais_api_form_node_type_form_submit';
+}
+
+/**
+ * Entity builder for the node type form with opencalais fields.
+ *
+ * @see opencalais_api_form_node_type_form_alter()
+ */
+function opencalais_api_form_node_type_form_submit($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
+  $type->setThirdPartySetting('opencalais_api', 'field', $form_state->getValue('opencalais_field'));
 }

@@ -8,3 +8,13 @@ opencalais_api.settings:
     api_server:
       type: string
       label: 'API Server of the service'
+    fields_config:
+      type: sequence
+      label: 'Plugins'
+      sequence:
+        type: mapping
+        label: 'Fields configuration'
+        mapping:
+          field_name:
+            type: string
+            label: 'Field Name'
