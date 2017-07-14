@@ -144,6 +144,7 @@ class TagsForm extends FormBase {
     $entity = clone $form_state->get('entity');
     $form_state->get('form_display')->extractFormValues($entity, $form, $form_state);
     $form_state->set('entity', $entity);
+    $entity->save();
   }
 
 }
