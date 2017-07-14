@@ -115,24 +115,28 @@ class TagsForm extends FormBase {
       '#title' => 'Entities',
       '#open' => TRUE,
     ];
-
+    $tags = [];
     foreach ($result['social_tags'] as $key => $value) {
-      $element['social_tags'][opencalais_make_machine_name($key)] = [
-        '#type' => 'label',
-        '#title' => $value,
-      ];
+      $tags[] = '<a>' . $value . '</a>';
     }
+    $markup = implode(', ', $tags);
+    $element['social_tags']['tags'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Tags'),
+      '#markup' => $markup,
+    ];
+    $entities = [];
     foreach ($result['entities'] as $key => $value) {
-      $element['entities'][opencalais_make_machine_name($key)] = [
-        '#type' => 'label',
-        '#title' => $key,
-      ];
       foreach ($value as $entity_id => $entity_value) {
-        $element['entities'][opencalais_make_machine_name($key)][$entity_id] = [
-          '#type' => 'markup',
-          '#markup' => $entity_value,
-        ];
+        $entities[] = '<a>' . $entity_value . '</a>';
       }
+      $markup = implode(', ', $entities);
+      $element['entities'][$key] = [
+        '#type' => 'item',
+        '#title' => $this->t($key),
+        '#markup' => $markup,
+      ];
+      $entities = [];
     }
     return $element;
   }
