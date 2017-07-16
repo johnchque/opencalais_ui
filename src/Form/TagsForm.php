@@ -2,11 +2,11 @@
 
 namespace Drupal\opencalais_ui\Form;
 
-use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\opencalais_ui\CalaisService;
+use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -59,18 +59,60 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $node = NULL) {
+    $form['#tree'] = TRUE;
+    $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
+    $library_item_render_array = $view_builder->view($node);
+    // This will remove all fields other then field_reusable_paragraph.
+    $form['content'] = $view_builder->build($library_item_render_array);
     $form_state->set('entity', $node);
-    $display = EntityFormDisplay::collectRenderDisplay($node, 'default');
-    $type = NodeType::load($node->getType());
-    foreach ($display->getComponents() as $name => $options) {
-      if ($name == $type->getThirdPartySetting('opencalais_ui', 'field') || $options['type'] == 'text_textarea_with_summary') {
-        continue;
-      }
-      $display->removeComponent($name);
-    }
-    $form_state->set('form_display', $display);
-    $form_state->get('form_display')->buildForm($node, $form, $form_state);
 
+    if ($form_state->get('analyse')) {
+      $text_types = [
+        'text_with_summary',
+        'text',
+        'text_long',
+        'list_string',
+        'string',
+      ];
+      $text = '';
+      $node = $form_state->get('entity');
+      foreach ($node->getFieldDefinitions() as $field_name => $field_definition) {
+        if (in_array($field_definition->getType(), $text_types)) {
+          $text .= $node->get($field_name)->value;
+        }
+      };
+      $result = $this->calaisService->analyze($text);
+
+      $form['open_calais'] = [
+        '#type' => 'container',
+        '#tree' => TRUE,
+      ];
+      $social_tags_options = [];
+      foreach ($result['social_tags'] as $key => $value) {
+        $social_tags_options[$key] = $value;
+      }
+      $form['open_calais']['social_tags'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Social tags'),
+        '#options' => $social_tags_options,
+      ];
+      $form['open_calais']['entities'] = [
+        '#type' => 'item',
+        '#title' => $this->t('Entities'),
+      ];
+      $entities_options = [];
+      foreach ($result['entities'] as $key => $value) {
+        foreach ($value as $entity_value) {
+          $entities_options[$entity_value] = $entity_value;
+        }
+        $form['open_calais']['entities'][$key] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t($key),
+          '#options' => $entities_options,
+        ];
+        $entities_options = [];
+      }
+    }
     // Add a submit button. Give it a class for easy JavaScript targeting.
     $form['suggested_tags'] = [
       '#type' => 'container',
@@ -78,6 +120,7 @@ class TagsForm extends FormBase {
         'id' => 'opencalais-suggested-tags',
       ],
     ];
+
     $form['actions'] = [
       '#type' => 'actions',
       '#weight' => 999,
@@ -86,6 +129,7 @@ class TagsForm extends FormBase {
       '#type' => 'submit',
       '#value' => t('Suggest Tags'),
       '#attributes' => ['class' => ['opencalais_submit']],
+      '#submit' => [[get_class($this), 'addMoreSubmit']],
       '#ajax' => [
         'callback' => '::suggestTagsAjax',
         'wrapper' => 'opencalais-suggested-tags',
@@ -97,58 +141,58 @@ class TagsForm extends FormBase {
       '#value' => t('Save'),
       '#button_type' => 'primary',
     ];
+
     return $form;
   }
 
   /**
-   * Get the form for mapping breakpoints to image styles.
+   * Ajax callback for the "Suggest tags" button.
    */
   public function suggestTagsAjax(array $form, FormStateInterface $form_state) {
-    $result = $this->calaisService->analyze($form_state->getValue('body')[0]['value']);
-    $element['social_tags'] = [
-      '#type' => 'details',
-      '#title' => 'Social Tags',
-      '#open' => TRUE,
-    ];
-    $element['entities'] = [
-      '#type' => 'details',
-      '#title' => 'Entities',
-      '#open' => TRUE,
-    ];
-    $tags = [];
-    foreach ($result['social_tags'] as $key => $value) {
-      $tags[] = '<a>' . $value . '</a>';
-    }
-    $markup = implode(', ', $tags);
-    $element['social_tags']['tags'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Tags'),
-      '#markup' => $markup,
-    ];
-    $entities = [];
-    foreach ($result['entities'] as $key => $value) {
-      foreach ($value as $entity_id => $entity_value) {
-        $entities[] = '<a>' . $entity_value . '</a>';
-      }
-      $markup = implode(', ', $entities);
-      $element['entities'][$key] = [
-        '#type' => 'item',
-        '#title' => $this->t($key),
-        '#markup' => $markup,
-      ];
-      $entities = [];
-    }
-    return $element;
+    return $form['open_calais'];
+  }
+
+  /**
+   * Submission handler for the "Suggest tags" button.
+   */
+  public function addMoreSubmit(array $form, FormStateInterface $form_state) {
+    $form_state->set('analyse', TRUE);
+    $form_state->setRebuild();
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $entity = clone $form_state->get('entity');
-    $form_state->get('form_display')->extractFormValues($entity, $form, $form_state);
-    $form_state->set('entity', $entity);
-    $entity->save();
+    $values = $form_state->getValue('open_calais');
+    $node = $form_state->get('entity');
+    $type = NodeType::load($node->getType());
+    $field = $type->getThirdPartySetting('opencalais_ui', 'field');
+    foreach ($values['social_tags'] as $key => $value) {
+      if ($value != FALSE) {
+        $values = [
+          'name' => $key,
+          'vid' => 'tags',
+        ];
+        $term = Term::create($values);
+        $term->save();
+        $node->$field[] = $term->id();
+      }
+    }
+    foreach ($values['entities'] as $key => $value) {
+      foreach ($value as $entity_id => $entity_value) {
+        if ($entity_value != FALSE) {
+          $values = [
+            'name' => $entity_id,
+            'vid' => 'tags',
+          ];
+          $term = Term::create($values);
+          $term->save();
+          $node->$field[] = $term->id();
+        }
+      }
+    }
+    $node->save();
   }
 
 }
