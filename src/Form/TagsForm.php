@@ -59,7 +59,6 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $node = NULL) {
-    $form['#tree'] = TRUE;
     $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
     $library_item_render_array = $view_builder->view($node);
     // This will remove all fields other then field_reusable_paragraph.
@@ -185,10 +184,16 @@ class TagsForm extends FormBase {
           $values = [
             'name' => $entity_id,
             'vid' => 'tags',
+            // @todo Add field for adding Classes of entities vocabulary. Change
+            // tags vid for something created by this module.
+            //'field_subClassOf' => $key
           ];
-          $term = Term::create($values);
-          $term->save();
-          $node->$field[] = $term->id();
+          // If the term has been added already to the entity, skip it.
+          if (!$term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['name' => $entity_value])) {
+            $term = Term::create($values);
+            $term->save();
+            $node->$field[] = $term->id();
+          }
         }
       }
     }
