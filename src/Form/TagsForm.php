@@ -2,6 +2,7 @@
 
 namespace Drupal\opencalais_ui\Form;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\NodeType;
@@ -29,14 +30,24 @@ class TagsForm extends FormBase {
   protected $config;
 
   /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
    * Constructs a RevisionOverviewForm object.
    *
    * @param \Drupal\opencalais_ui\CalaisService $calais_service
    *   The OpenCalais service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    */
-  public function __construct(CalaisService $calais_service) {
+  public function __construct(CalaisService $calais_service, EntityTypeManagerInterface $entity_type_manager) {
     $this->config = $this->config('opencalais_ui.settings');
     $this->calaisService = $calais_service;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -44,7 +55,8 @@ class TagsForm extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('opencalais_ui.calais_service')
+      $container->get('opencalais_ui.calais_service'),
+      $container->get('entity_type.manager')
     );
   }
 
@@ -59,9 +71,8 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $node = NULL) {
-    $view_builder = \Drupal::entityTypeManager()->getViewBuilder('node');
+    $view_builder = $this->entityTypeManager->getViewBuilder('node');
     $library_item_render_array = $view_builder->view($node);
-    // This will remove all fields other then field_reusable_paragraph.
     $form['content'] = $view_builder->build($library_item_render_array);
     $form_state->set('entity', $node);
 
@@ -181,15 +192,16 @@ class TagsForm extends FormBase {
     foreach ($values['entities'] as $key => $value) {
       foreach ($value as $entity_id => $entity_value) {
         if ($entity_value != FALSE) {
+          $key_id = $term = $this->entityTypeManager->getStorage('taxonomy_term')
+            ->loadByProperties(['name' => $key]);
           $values = [
             'name' => $entity_id,
-            'vid' => 'tags',
-            // @todo Add field for adding Classes of entities vocabulary. Change
-            // tags vid for something created by this module.
-            //'field_subClassOf' => $key
+            'vid' => 'markup_tags',
+            'subclassof' => $key_id
           ];
           // If the term has been added already to the entity, skip it.
-          if (!$term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['name' => $entity_value])) {
+          if (!$term = $this->entityTypeManager->getStorage('taxonomy_term')
+            ->loadByProperties(['name' => $entity_value])) {
             $term = Term::create($values);
             $term->save();
             $node->$field[] = $term->id();
