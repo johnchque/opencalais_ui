@@ -77,6 +77,23 @@ class TagsForm extends FormBase {
     $form_state->set('entity', $node);
 
     if ($form_state->get('analyse')) {
+      // Build the details boxes for aboutness tags and entities.
+      $form['open_calais'] = [
+        '#type' => 'container',
+        '#tree' => TRUE,
+      ];
+      $form['open_calais']['entities'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Entities'),
+        '#open' => TRUE,
+      ];
+      $form['open_calais']['aboutness_tags'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Aboutness tags'),
+        '#open' => TRUE,
+      ];
+
+      // Append all the text fields in an unique string.
       $text_types = [
         'text_with_summary',
         'text',
@@ -93,23 +110,36 @@ class TagsForm extends FormBase {
       };
       $result = $this->calaisService->analyze($text);
 
-      $form['open_calais'] = [
-        '#type' => 'container',
-        '#tree' => TRUE,
-      ];
-      $social_tags_options = [];
+      $social_tags = [];
       foreach ($result['social_tags'] as $key => $value) {
-        $social_tags_options[$key] = $value;
+        $social_tags[$key] = $value;
       }
-      $form['open_calais']['social_tags'] = [
+      $form['open_calais']['aboutness_tags']['social_tags'] = [
         '#type' => 'checkboxes',
         '#title' => $this->t('Social tags'),
-        '#options' => $social_tags_options,
+        '#options' => $social_tags,
       ];
-      $form['open_calais']['entities'] = [
-        '#type' => 'item',
-        '#title' => $this->t('Entities'),
+
+      $topic_tags = [];
+      foreach ($result['topic_tags'] as $key => $value) {
+        $topic_tags[$key] = $value;
+      }
+      $form['open_calais']['aboutness_tags']['topic_tags'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Topic tags'),
+        '#options' => $topic_tags,
       ];
+
+      $industry_tags = [];
+      foreach ($result['industry_tags'] as $key => $value) {
+        $industry_tags[$key] = $value;
+      }
+      $form['open_calais']['aboutness_tags']['industry_tags'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Industry tags'),
+        '#options' => $industry_tags,
+      ];
+
       $entities_options = [];
       foreach ($result['entities'] as $key => $value) {
         foreach ($value as $entity_value) {
@@ -178,17 +208,23 @@ class TagsForm extends FormBase {
     $node = $form_state->get('entity');
     $type = NodeType::load($node->getType());
     $field = $type->getThirdPartySetting('opencalais_ui', 'field');
-    foreach ($values['social_tags'] as $key => $value) {
-      if ($value != FALSE) {
-        $values = [
-          'name' => $key,
-          'vid' => 'tags',
-        ];
-        $term = Term::create($values);
-        $term->save();
-        $node->$field[] = $term->id();
+    foreach ($values['aboutness_tags'] as $tags_type_id => $tags) {
+      foreach ($tags as $key => $value) {
+        if ($value != FALSE) {
+          $values = [
+            'name' => $key,
+            'vid' => $tags_type_id,
+          ];
+          if (!$term = $this->entityTypeManager->getStorage('taxonomy_term')
+            ->loadByProperties(['name' => $value, 'vid' => $tags_type_id])) {
+            $term = Term::create($values);
+            $term->save();
+            $node->$field[] = $term;
+          }
+        }
       }
-    }
+    };
+
     foreach ($values['entities'] as $key => $value) {
       foreach ($value as $entity_id => $entity_value) {
         if ($entity_value != FALSE) {
@@ -204,11 +240,11 @@ class TagsForm extends FormBase {
             ->loadByProperties(['name' => $entity_value])) {
             $term = Term::create($values);
             $term->save();
-            $node->$field[] = $term->id();
+            $node->$field[] = $term;
           }
         }
       }
-    }
+    };
     $node->save();
   }
 

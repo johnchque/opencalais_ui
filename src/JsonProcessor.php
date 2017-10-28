@@ -42,14 +42,69 @@ class JsonProcessor {
    */
   protected function build_entities() {
     foreach ($this->decoded_response as $guid => $data) {
-      if (isset($data['_typeGroup']) && $data['_typeGroup'] == 'entities') {
-        $this->extractEntities($guid, $data);
-      }
-      elseif (isset($data['_typeGroup']) && $data['_typeGroup'] == 'socialTag') {
-        $this->extractTags($guid, $data);
+      if (isset($data['_typeGroup'])) {
+        switch ($data['_typeGroup']) {
+          case 'socialTag':
+            $this->extractSocialTags($guid, $data);
+            break;
+          case 'topics':
+            $this->extractTopicTags($guid, $data);
+            break;
+          case 'industry':
+            $this->extractIndustryTags($guid, $data);
+            break;
+          case 'entities':
+            $this->extractEntities($guid, $data);
+            break;
+          case 'relations':
+            // @todo implement extractRelations().
+            break;
+          case 'language':
+            $this->extractDefaultLangID($guid, $data);
+            break;
+        }
       }
     }
     return $this->keywords;
+  }
+
+  /**
+   * Extracts Social Tags from the returned data.
+   *
+   * @param $guid
+   *   The guid for the current Calais Term
+   * @param $data
+   *   The indexed triple for the current Calais Term/GUID
+   */
+  protected function extractSocialTags($guid, $data) {
+    $tag_val = $data['name'];
+    $this->keywords['social_tags'][$tag_val] = $tag_val;
+  }
+
+  /**
+   * Extracts Topic Tags from the returned data.
+   *
+   * @param $guid
+   *   The guid for the current Calais Term
+   * @param $data
+   *   The indexed triple for the current Calais Term/GUID
+   */
+  protected function extractTopicTags($guid, $data) {
+    $tag_val = $data['name'];
+    $this->keywords['topic_tags'][$tag_val] = $tag_val;
+  }
+
+  /**
+   * Extracts Industry Tags from the returned data.
+   *
+   * @param $guid
+   *   The guid for the current Calais Term
+   * @param $data
+   *   The indexed triple for the current Calais Term/GUID
+   */
+  protected function extractIndustryTags($guid, $data) {
+    $tag_val = $data['name'];
+    $this->keywords['industry_tags'][$tag_val] = $tag_val;
   }
 
   /**
@@ -67,16 +122,16 @@ class JsonProcessor {
   }
 
   /**
-   * Extracts the Social Tags from the returned data.
+   * Extracts the Default Language from the returned data.
    *
    * @param $guid
    *   The guid for the current Calais Term
    * @param $data
    *   The indexed triple for the current Calais Term/GUID
    */
-  protected function extractTags($guid, $data) {
-    $tag_val = $data['name'];
-    $this->keywords['social_tags'][$tag_val] = $tag_val;
+  protected function extractDefaultLangID($guid, $data) {
+    $tag_val = $data['language'];
+    $this->keywords['default_language'][$tag_val] = $tag_val;
   }
 
 }
