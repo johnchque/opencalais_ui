@@ -78,7 +78,11 @@ class JsonProcessor {
    */
   protected function extractSocialTags($guid, $data) {
     $tag_val = $data['name'];
-    $this->keywords['social_tags'][$tag_val] = $tag_val;
+    $importance = $data['importance'];
+    $this->keywords['social_tags'][$tag_val] = [
+      'name' => $tag_val,
+      'importance' => $importance
+    ];
   }
 
   /**
@@ -91,7 +95,11 @@ class JsonProcessor {
    */
   protected function extractTopicTags($guid, $data) {
     $tag_val = $data['name'];
-    $this->keywords['topic_tags'][$tag_val] = $tag_val;
+    $score = $data['score'];
+    $this->keywords['topic_tags'][$tag_val] = [
+      'name' => $tag_val,
+      'score' => $score
+    ];
   }
 
   /**
@@ -104,7 +112,11 @@ class JsonProcessor {
    */
   protected function extractIndustryTags($guid, $data) {
     $tag_val = $data['name'];
-    $this->keywords['industry_tags'][$tag_val] = $tag_val;
+    $relevance = $data['relevance'];
+    $this->keywords['industry_tags'][$tag_val] = [
+      'name' => $tag_val,
+      'relevance' => $relevance
+    ];
   }
 
   /**
@@ -117,7 +129,10 @@ class JsonProcessor {
    */
   protected function extractEntities($guid, $data) {
     $entity_type = $data['_type'];
-    $entity_value = $data['name'];
+    $entity_value = [
+      'name' => $data['name'],
+      'confidence' => $data['confidencelevel']
+    ];
     $this->keywords['entities'][$entity_type][] = $entity_value;
   }
 

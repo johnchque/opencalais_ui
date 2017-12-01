@@ -112,7 +112,7 @@ class TagsForm extends FormBase {
 
       $social_tags = [];
       foreach ($result['social_tags'] as $key => $value) {
-        $social_tags[$key] = $value;
+        $social_tags[$key] = $value['name'] . ' (' . $value['importance'] . ')';
       }
       $form['open_calais']['aboutness_tags']['social_tags'] = [
         '#type' => 'checkboxes',
@@ -122,7 +122,7 @@ class TagsForm extends FormBase {
 
       $topic_tags = [];
       foreach ($result['topic_tags'] as $key => $value) {
-        $topic_tags[$key] = $value;
+        $topic_tags[$key] = $value['name'] . ' (' . $value['score'] . ')';
       }
       $form['open_calais']['aboutness_tags']['topic_tags'] = [
         '#type' => 'checkboxes',
@@ -132,7 +132,7 @@ class TagsForm extends FormBase {
 
       $industry_tags = [];
       foreach ($result['industry_tags'] as $key => $value) {
-        $industry_tags[$key] = $value;
+        $industry_tags[$key] = $value['name'] . ' (' . $value['relevance'] . ')';
       }
       $form['open_calais']['aboutness_tags']['industry_tags'] = [
         '#type' => 'checkboxes',
@@ -143,7 +143,7 @@ class TagsForm extends FormBase {
       $entities_options = [];
       foreach ($result['entities'] as $key => $value) {
         foreach ($value as $entity_value) {
-          $entities_options[$entity_value] = $entity_value;
+          $entities_options[$entity_value['name']] = $entity_value['name'] . ' (' . $entity_value['confidence'] . ')';
         }
         $form['open_calais']['entities'][$key] = [
           '#type' => 'checkboxes',
