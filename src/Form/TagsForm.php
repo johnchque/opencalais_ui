@@ -5,6 +5,7 @@ namespace Drupal\opencalais_ui\Form;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\Entity\NodeType;
 use Drupal\opencalais_ui\CalaisService;
 use Drupal\taxonomy\Entity\Term;
@@ -71,116 +72,127 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $node = NULL) {
-    $view_builder = $this->entityTypeManager->getViewBuilder('node');
-    $library_item_render_array = $view_builder->view($node);
-    $form['content'] = $view_builder->build($library_item_render_array);
-    $form_state->set('entity', $node);
-
-    if ($form_state->get('analyse')) {
-      // Build the details boxes for aboutness tags and entities.
-      $form['open_calais'] = [
-        '#type' => 'container',
-        '#tree' => TRUE,
-      ];
-      $form['open_calais']['entities'] = [
-        '#type' => 'details',
-        '#title' => $this->t('Entities'),
-        '#open' => TRUE,
-      ];
-      $form['open_calais']['aboutness_tags'] = [
-        '#type' => 'details',
-        '#title' => $this->t('Aboutness tags'),
-        '#open' => TRUE,
-      ];
-
-      // Append all the text fields in an unique string.
-      $text_types = [
-        'text_with_summary',
-        'text',
-        'text_long',
-        'list_string',
-        'string',
-      ];
-      $text = '';
-      $node = $form_state->get('entity');
-      foreach ($node->getFieldDefinitions() as $field_name => $field_definition) {
-        if (in_array($field_definition->getType(), $text_types)) {
-          $text .= $node->get($field_name)->value;
-        }
-      };
-      $result = $this->calaisService->analyze($text);
-
-      $social_tags = [];
-      foreach ($result['social_tags'] as $key => $value) {
-        $social_tags[$key] = $value['name'] . ' (' . $value['importance'] . ')';
-      }
-      $form['open_calais']['aboutness_tags']['social_tags'] = [
-        '#type' => 'checkboxes',
-        '#title' => $this->t('Social tags'),
-        '#options' => $social_tags,
-      ];
-
-      $topic_tags = [];
-      foreach ($result['topic_tags'] as $key => $value) {
-        $topic_tags[$key] = $value['name'] . ' (' . $value['score'] . ')';
-      }
-      $form['open_calais']['aboutness_tags']['topic_tags'] = [
-        '#type' => 'checkboxes',
-        '#title' => $this->t('Topic tags'),
-        '#options' => $topic_tags,
-      ];
-
-      $industry_tags = [];
-      foreach ($result['industry_tags'] as $key => $value) {
-        $industry_tags[$key] = $value['name'] . ' (' . $value['relevance'] . ')';
-      }
-      $form['open_calais']['aboutness_tags']['industry_tags'] = [
-        '#type' => 'checkboxes',
-        '#title' => $this->t('Industry tags'),
-        '#options' => $industry_tags,
-      ];
-
-      $entities_options = [];
-      foreach ($result['entities'] as $key => $value) {
-        foreach ($value as $entity_value) {
-          $entities_options[$entity_value['name']] = $entity_value['name'] . ' (' . $entity_value['confidence'] . ')';
-        }
-        $form['open_calais']['entities'][$key] = [
-          '#type' => 'checkboxes',
-          '#title' => $this->t($key),
-          '#options' => $entities_options,
-        ];
-        $entities_options = [];
-      }
+    // If no API key has been set, show an error message otherwise build the
+    // form.
+    if (!$this->calaisService->apiKeySet()) {
+      drupal_set_message(t('No API key has been set. Click <a href=":key_page">here</a> to set it', [
+        ':key_page' => Url::fromRoute('opencalais_ui.general_settings')
+          ->toString()
+      ]), 'error');
     }
-    // Add a submit button. Give it a class for easy JavaScript targeting.
-    $form['suggested_tags'] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'id' => 'opencalais-suggested-tags',
-      ],
-    ];
+    else {
+      // Get the view builder and build the node view in 'content'.
+      $view_builder = $this->entityTypeManager->getViewBuilder('node');
+      $library_item_render_array = $view_builder->view($node);
+      $form['content'] = $view_builder->build($library_item_render_array);
+      $form_state->set('entity', $node);
 
-    $form['actions'] = [
-      '#type' => 'actions',
-      '#weight' => 999,
-    ];
-    $form['actions']['suggest_tags'] = [
-      '#type' => 'submit',
-      '#value' => t('Suggest Tags'),
-      '#attributes' => ['class' => ['opencalais_submit']],
-      '#submit' => [[get_class($this), 'addMoreSubmit']],
-      '#ajax' => [
-        'callback' => '::suggestTagsAjax',
-        'wrapper' => 'opencalais-suggested-tags',
-        'effect' => 'fade',
-      ],
-    ];
-    $form['actions']['save'] = [
-      '#type' => 'submit',
-      '#value' => t('Save'),
-      '#button_type' => 'primary',
-    ];
+      // If 'analyse' is set, call the service and display the tags.
+      if ($form_state->get('analyse')) {
+        $form['open_calais'] = [
+          '#type' => 'container',
+          '#tree' => TRUE,
+        ];
+        $form['open_calais']['entities'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Entities'),
+          '#open' => TRUE,
+        ];
+        $form['open_calais']['aboutness_tags'] = [
+          '#type' => 'details',
+          '#title' => $this->t('Aboutness tags'),
+          '#open' => TRUE,
+        ];
+
+        // Append all the text fields in an unique string.
+        $text_types = [
+          'text_with_summary',
+          'text',
+          'text_long',
+          'list_string',
+          'string',
+        ];
+        $text = '';
+        $node = $form_state->get('entity');
+        foreach ($node->getFieldDefinitions() as $field_name => $field_definition) {
+          if (in_array($field_definition->getType(), $text_types)) {
+            $text .= $node->get($field_name)->value;
+          }
+        };
+        $result = $this->calaisService->analyze($text);
+
+        $social_tags = [];
+        foreach ($result['social_tags'] as $key => $value) {
+          $social_tags[$key] = $value['name'] . ' (' . $value['importance'] . ')';
+        }
+        $form['open_calais']['aboutness_tags']['social_tags'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Social tags'),
+          '#options' => $social_tags,
+        ];
+
+        $topic_tags = [];
+        foreach ($result['topic_tags'] as $key => $value) {
+          $topic_tags[$key] = $value['name'] . ' (' . $value['score'] . ')';
+        }
+        $form['open_calais']['aboutness_tags']['topic_tags'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Topic tags'),
+          '#options' => $topic_tags,
+        ];
+
+        $industry_tags = [];
+        foreach ($result['industry_tags'] as $key => $value) {
+          $industry_tags[$key] = $value['name'] . ' (' . $value['relevance'] . ')';
+        }
+        $form['open_calais']['aboutness_tags']['industry_tags'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Industry tags'),
+          '#options' => $industry_tags,
+        ];
+
+        $entities_options = [];
+        foreach ($result['entities'] as $key => $value) {
+          foreach ($value as $entity_value) {
+            $entities_options[$entity_value['name']] = $entity_value['name'] . ' (' . $entity_value['confidence'] . ')';
+          }
+          $form['open_calais']['entities'][$key] = [
+            '#type' => 'checkboxes',
+            '#title' => $this->t($key),
+            '#options' => $entities_options,
+          ];
+          $entities_options = [];
+        }
+      }
+      // Add a submit button. Give it a class for easy JavaScript targeting.
+      $form['suggested_tags'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'id' => 'opencalais-suggested-tags',
+        ],
+      ];
+
+      $form['actions'] = [
+        '#type' => 'actions',
+        '#weight' => 999,
+      ];
+      $form['actions']['suggest_tags'] = [
+        '#type' => 'submit',
+        '#value' => t('Suggest Tags'),
+        '#attributes' => ['class' => ['opencalais_submit']],
+        '#submit' => [[get_class($this), 'addMoreSubmit']],
+        '#ajax' => [
+          'callback' => '::suggestTagsAjax',
+          'wrapper' => 'opencalais-suggested-tags',
+          'effect' => 'fade',
+        ],
+      ];
+      $form['actions']['save'] = [
+        '#type' => 'submit',
+        '#value' => t('Save'),
+        '#button_type' => 'primary',
+      ];
+    }
 
     return $form;
   }
