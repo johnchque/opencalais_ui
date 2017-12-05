@@ -91,8 +91,8 @@ class TagsForm extends FormBase {
     else {
       // Get the view builder and build the node view in 'content'.
       $view_builder = $this->entityTypeManager->getViewBuilder('node');
-      $library_item_render_array = $view_builder->view($node);
-      $form['content'] = $view_builder->build($library_item_render_array);
+      $node_output = $view_builder->view($node);
+      $form['content'] = $node_output;
       $form_state->set('entity', $node);
 
       // If 'analyse' is set, call the service and display the tags.

@@ -2,58 +2,20 @@
 
 namespace Drupal\opencalais_ui\Tests;
 
-use Drupal\field_ui\Tests\FieldUiTestTrait;
 use Drupal\node\Entity\Node;
-use Drupal\simpletest\WebTestBase;
 
 /**
  * Tests the Open Calais UI admin.
  *
  * @group opencalais_ui
  */
-class OpenCalaisUIAdminTest extends WebTestBase {
-
-  use FieldUiTestTrait;
-
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = array(
-    'node',
-    'block',
-    'opencalais_ui',
-    'taxonomy',
-    'field_ui'
-  );
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp() {
-    parent::setUp();
-    // Create article content type.
-    $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
-    $this->drupalPlaceBlock('system_breadcrumb_block');
-  }
+class OpenCalaisUiAdminTest extends OpenCalaisUiTestBase {
 
   /**
    * Tests Open Calais UI configuration form.
    */
   public function testConfigForm() {
-    $admin_user = $this->drupalCreateUser(array(
-      'administer site configuration',
-      'administer nodes',
-      'create article content',
-      'administer content types',
-      'administer node fields',
-      'edit any article content',
-      'administer opencalais',
-      'administer content types'
-    ));
-    $this->drupalLogin($admin_user);
-
+    $this->loginAsAdmin();
     // Create a test node.
     $node = Node::create([
       'title' => 'Target node',
@@ -71,10 +33,7 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     $this->assertNoText('No Open Calais field has been set. Click here to set it');
 
     // Set the API key and check that the message is no longer displayed.
-    $edit = [
-      'api_key' => 'test_key'
-    ];
-    $this->drupalPostForm('admin/config/content/opencalais/general', $edit, 'Save configuration');
+    $this->setTestApiKey();
     $this->drupalGet('node/' . $node->id() . '/opencalais_tags');
     $this->assertLink('here');
     $this->assertNoText('No API key has been set. Click here to set it');
@@ -96,7 +55,7 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     $this->assertNoText('The content type has no taxonomy fields available. Please add one to use Open Calais.');
 
     // Set the open calais field and check if the message is no longer displayed.
-    $this->drupalPostForm('admin/structure/types/manage/article', ['opencalais_field' => 'field_taxonomy_test'], 'Save content type');
+    $this->setTestOpenCalaisField('field_taxonomy_test');
     $this->drupalGet('node/' . $node->id() . '/opencalais_tags');
     $this->assertNoText('No API key has been set. Click here to set it');
     $this->assertNoText('No Open Calais field has been set. Click here to set it');
