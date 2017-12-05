@@ -129,35 +129,10 @@ class TagsForm extends FormBase {
         };
         $result = $this->calaisService->analyze($text);
 
-        $social_tags = [];
-        foreach ($result['social_tags'] as $key => $value) {
-          $social_tags[$key] = $value['name'] . ' (' . $value['importance'] . ')';
-        }
-        $form['open_calais']['aboutness_tags']['social_tags'] = [
-          '#type' => 'checkboxes',
-          '#title' => $this->t('Social tags'),
-          '#options' => $social_tags,
-        ];
-
-        $topic_tags = [];
-        foreach ($result['topic_tags'] as $key => $value) {
-          $topic_tags[$key] = $value['name'] . ' (' . $value['score'] . ')';
-        }
-        $form['open_calais']['aboutness_tags']['topic_tags'] = [
-          '#type' => 'checkboxes',
-          '#title' => $this->t('Topic tags'),
-          '#options' => $topic_tags,
-        ];
-
-        $industry_tags = [];
-        foreach ($result['industry_tags'] as $key => $value) {
-          $industry_tags[$key] = $value['name'] . ' (' . $value['relevance'] . ')';
-        }
-        $form['open_calais']['aboutness_tags']['industry_tags'] = [
-          '#type' => 'checkboxes',
-          '#title' => $this->t('Industry tags'),
-          '#options' => $industry_tags,
-        ];
+        // Build checkboxes for aboutness tags.
+        $form['open_calais']['aboutness_tags']['social_tags'] = $this->buildCheckBoxes($result['social_tags'], 'Social', 'importance');
+        $form['open_calais']['aboutness_tags']['topic_tags'] = $this->buildCheckBoxes($result['topic_tags'], 'Topic', 'score');
+        $form['open_calais']['aboutness_tags']['industry_tags'] = $this->buildCheckBoxes($result['industry_tags'], 'Industry', 'relevance');
 
         $entities_options = [];
         foreach ($result['entities'] as $key => $value) {
@@ -184,6 +159,11 @@ class TagsForm extends FormBase {
         '#type' => 'actions',
         '#weight' => 999,
       ];
+      $form['actions']['save'] = [
+        '#type' => 'submit',
+        '#value' => t('Save'),
+        '#button_type' => 'primary',
+      ];
       $form['actions']['suggest_tags'] = [
         '#type' => 'submit',
         '#value' => t('Suggest Tags'),
@@ -194,11 +174,6 @@ class TagsForm extends FormBase {
           'wrapper' => 'opencalais-suggested-tags',
           'effect' => 'fade',
         ],
-      ];
-      $form['actions']['save'] = [
-        '#type' => 'submit',
-        '#value' => t('Save'),
-        '#button_type' => 'primary',
       ];
     }
 
@@ -218,6 +193,32 @@ class TagsForm extends FormBase {
   public function addMoreSubmit(array $form, FormStateInterface $form_state) {
     $form_state->set('analyse', TRUE);
     $form_state->setRebuild();
+  }
+
+  /**
+   * Build checkboxes for aboutness tags.
+   */
+  public function buildCheckBoxes($result, $name, $relevance) {
+    // If there are no options show a message of empty.
+    if ($result === NULL) {
+      $form = [
+        '#type' => 'item',
+        '#title' => $this->t($name . ' tags'),
+        '#markup' => t('No ' . $name . ' tags returned.')
+      ];
+    }
+    else {
+      $social_tags = [];
+      foreach ($result as $key => $value) {
+        $social_tags[$key] = $value['name'] . ' (' . $value[$relevance] . ')';
+      }
+      $form = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t($name . ' tags'),
+        '#options' => $social_tags,
+      ];
+    }
+    return $form;
   }
 
   /**
