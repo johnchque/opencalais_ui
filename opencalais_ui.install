@@ -11,7 +11,7 @@ use Drupal\taxonomy\Entity\Term;
  * Implements hook_install().
  */
 function opencalais_ui_install() {
-  // Create all OpenCalais entities on the "entities" vocabulary.
+  // Create all Open Calais entities on the "entities" vocabulary.
   $entities = opencalais_entities();
   foreach ($entities as $entity) {
     $values = [
@@ -24,7 +24,7 @@ function opencalais_ui_install() {
 }
 
 /**
- * List of all the entities defined by OpenCalais.
+ * List of all the entities defined by Open Calais.
  */
 function opencalais_entities() {
   $entities = [

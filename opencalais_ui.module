@@ -39,15 +39,19 @@ function opencalais_ui_form_node_type_form_alter(&$form, FormStateInterface $for
 
   foreach ($field_definitions as $field_name => $field_definition) {
     if ($field_definition->getType() == 'entity_reference') {
-      if ($field_definition->getFieldStorageDefinition()->getSetting('target_type') == 'taxonomy_term') {
+      if ($field_definition->getFieldStorageDefinition()
+          ->getSetting('target_type') == 'taxonomy_term') {
         $options[$field_definition->getName()] = $field_definition->getLabel();
       }
     }
   }
 
+  if ($options == []) {
+    drupal_set_message('The content type has no taxonomy fields available. Please add one to use Open Calais.', 'error');
+  }
   if ($options) {
     $form['opencalais_field'] = [
-      '#title' => t('OpenCalais Field'),
+      '#title' => t('Open Calais Field'),
       '#description' => t('Field where to add taxonomy terms.'),
       '#type' => 'select',
       '#options' => $options,

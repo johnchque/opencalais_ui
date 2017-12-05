@@ -34,7 +34,7 @@ class GeneralSettingsForm extends ConfigFormBase {
     $config = $this->config('opencalais_ui.settings');
     $form['api_key'] = [
       '#type' => 'textfield',
-      '#title' => t('OpenCalais API Key'),
+      '#title' => t('Open Calais API Key'),
       '#default_value' => $config->get('api_key'),
       '#size' => 60,
       '#description' => t('Required to utilize the Calais service. Click <a href=":key_page">here</a> to get one.', [
@@ -45,7 +45,7 @@ class GeneralSettingsForm extends ConfigFormBase {
 
     $form['api_server'] = [
       '#type' => 'textfield',
-      '#title' => t('OpenCalais Server'),
+      '#title' => t('Open Calais Server'),
       '#default_value' => $config->get('api_server') ?: 'api.thomsonreuters.com',
       '#size' => 60,
       '#description' => t('The domain name for the server to use. Typically you will not have to change this unless you want to test beta functionality.'),

@@ -2,6 +2,7 @@
 
 namespace Drupal\opencalais_ui\Tests;
 
+use Drupal\field_ui\Tests\FieldUiTestTrait;
 use Drupal\node\Entity\Node;
 use Drupal\simpletest\WebTestBase;
 
@@ -12,6 +13,8 @@ use Drupal\simpletest\WebTestBase;
  */
 class OpenCalaisUIAdminTest extends WebTestBase {
 
+  use FieldUiTestTrait;
+
   /**
    * Modules to enable.
    *
@@ -21,7 +24,8 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     'node',
     'block',
     'opencalais_ui',
-    'taxonomy'
+    'taxonomy',
+    'field_ui'
   );
 
   /**
@@ -31,6 +35,7 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     parent::setUp();
     // Create article content type.
     $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
+    $this->drupalPlaceBlock('system_breadcrumb_block');
   }
 
   /**
@@ -41,8 +46,11 @@ class OpenCalaisUIAdminTest extends WebTestBase {
       'administer site configuration',
       'administer nodes',
       'create article content',
+      'administer content types',
+      'administer node fields',
       'edit any article content',
-      'administer opencalais'
+      'administer opencalais',
+      'administer content types'
     ));
     $this->drupalLogin($admin_user);
 
@@ -60,6 +68,7 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     $this->drupalGet('node/' . $node->id() . '/opencalais_tags');
     $this->assertLink('here');
     $this->assertText('No API key has been set. Click here to set it');
+    $this->assertNoText('No Open Calais field has been set. Click here to set it');
 
     // Set the API key and check that the message is no longer displayed.
     $edit = [
@@ -67,8 +76,30 @@ class OpenCalaisUIAdminTest extends WebTestBase {
     ];
     $this->drupalPostForm('admin/config/content/opencalais/general', $edit, 'Save configuration');
     $this->drupalGet('node/' . $node->id() . '/opencalais_tags');
-    $this->assertNoLink('here');
+    $this->assertLink('here');
     $this->assertNoText('No API key has been set. Click here to set it');
+    // Assert the message of the missing open calais field.
+    $this->assertText('No Open Calais field has been set. Click here to set it');
+
+    // Add a taxonomy field and check if the message is no longer displayed.
+    $this->drupalGet('admin/structure/types/manage/article');
+    $this->assertText('The content type has no taxonomy fields available. Please add one to use Open Calais.');
+    $field_edit = [
+      'settings[handler_settings][target_bundles][entities]' => TRUE,
+      'settings[handler_settings][target_bundles][industry_tags]' => TRUE,
+      'settings[handler_settings][target_bundles][markup_tags]' => TRUE,
+      'settings[handler_settings][target_bundles][social_tags]' => TRUE,
+      'settings[handler_settings][target_bundles][topic_tags]' => TRUE
+    ];
+    static::fieldUIAddNewField('admin/structure/types/manage/article', 'taxonomy_test', 'taxonomy_test', 'field_ui:entity_reference:taxonomy_term', [], $field_edit);
+    $this->drupalGet('admin/structure/types/manage/article');
+    $this->assertNoText('The content type has no taxonomy fields available. Please add one to use Open Calais.');
+
+    // Set the open calais field and check if the message is no longer displayed.
+    $this->drupalPostForm('admin/structure/types/manage/article', ['opencalais_field' => 'field_taxonomy_test'], 'Save content type');
+    $this->drupalGet('node/' . $node->id() . '/opencalais_tags');
+    $this->assertNoText('No API key has been set. Click here to set it');
+    $this->assertNoText('No Open Calais field has been set. Click here to set it');
   }
 
 }

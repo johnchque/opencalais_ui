@@ -8,7 +8,7 @@ use GuzzleHttp\Client;
 class CalaisService {
 
   /**
-   * The OpenCalais Json Processor.
+   * The Open Calais Json Processor.
    *
    * @var \Drupal\opencalais_ui\JsonProcessor
    */
@@ -29,7 +29,7 @@ class CalaisService {
   protected $httpClient;
 
   /**
-   * OpenCalais service default parameters.
+   * Open Calais service default parameters.
    *
    * @var array
    */
@@ -47,7 +47,7 @@ class CalaisService {
   ];
 
   /**
-   * OpenCalais service default path.
+   * Open Calais service default path.
    *
    * @var string
    */

@@ -1,6 +1,6 @@
 {
   "name": "drupal/opencalais_ui",
-  "description": "Integration module for the OpenCalais Web Service",
+  "description": "Integration module for the Open Calais Web Service",
   "type": "drupal-module",
   "homepage": "https://www.drupal.org/sandbox/yongt9412/2894247",
   "license": "GPL-2.0+",

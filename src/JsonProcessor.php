@@ -5,7 +5,7 @@ namespace Drupal\opencalais_ui;
 class JsonProcessor {
 
   /**
-   * The decoded OpenCalais response.
+   * The decoded Open Calais response.
    *
    * @var array
    */

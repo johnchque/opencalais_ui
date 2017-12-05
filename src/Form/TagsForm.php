@@ -12,12 +12,12 @@ use Drupal\taxonomy\Entity\Term;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Auto tag content with the OpenCalais service.
+ * Auto tag content with the Open Calais service.
  */
 class TagsForm extends FormBase {
 
   /**
-   * The OpenCalais service.
+   * The Open Calais service.
    *
    * @var \Drupal\opencalais_ui\CalaisService
    */
@@ -41,7 +41,7 @@ class TagsForm extends FormBase {
    * Constructs a RevisionOverviewForm object.
    *
    * @param \Drupal\opencalais_ui\CalaisService $calais_service
-   *   The OpenCalais service.
+   *   The Open Calais service.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    */
@@ -74,9 +74,17 @@ class TagsForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, $node = NULL) {
     // If no API key has been set, show an error message otherwise build the
     // form.
+    $type = $node->getType();
+    $node_type = NodeType::load($type);
     if (!$this->calaisService->apiKeySet()) {
-      drupal_set_message(t('No API key has been set. Click <a href=":key_page">here</a> to set it', [
+      drupal_set_message(t('No API key has been set. Click <a href=":key_page">here</a> to set it.', [
         ':key_page' => Url::fromRoute('opencalais_ui.general_settings')
+          ->toString()
+      ]), 'error');
+    }
+    else if (!$node_type->getThirdPartySetting('opencalais_ui', 'field')) {
+      drupal_set_message(t('No Open Calais field has been set. Click <a href=":key_page">here</a> to set it.', [
+        ':key_page' => Url::fromRoute('entity.node_type.edit_form', ['node_type' => $type])
           ->toString()
       ]), 'error');
     }
