@@ -2,7 +2,6 @@
   "name": "drupal/opencalais_ui",
   "description": "Integration module for the Open Calais Web Service",
   "type": "drupal-module",
-  "homepage": "https://www.drupal.org/sandbox/yongt9412/2894247",
   "license": "GPL-2.0+",
   "authors": [
     {
@@ -12,21 +11,7 @@
     }
   ],
   "support": {
-    "issues": "https://www.drupal.org/project/issues/2894247"
-  },
-  "repositories": [
-    {
-      "type": "package",
-      "package": {
-        "name": "drupal/opencalais_ui",
-        "version": "8.0.0",
-        "type": "drupal-module",
-        "source": {
-          "url": "https://git.drupal.org/sandbox/yongt9412/2894247.git",
-          "type": "git",
-          "reference": "refs/heads/8.x-1.x"
-        }
-      }
-    }
-  ]
+    "issues": "https://www.drupal.org/project/issues/opencalais_ui",
+    "source": "http://cgit.drupalcode.org/opencalais_ui"
+  }
 }
