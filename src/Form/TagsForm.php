@@ -225,11 +225,12 @@ class TagsForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $values = $form_state->getValue('open_calais');
+    $selected_tags = $form_state->getValue('open_calais');
     $node = $form_state->get('entity');
     $type = NodeType::load($node->getType());
     $field = $type->getThirdPartySetting('opencalais_ui', 'field');
-    foreach ($values['aboutness_tags'] as $tags_type_id => $tags) {
+    $tids = [];
+    foreach ($selected_tags['aboutness_tags'] as $tags_type_id => $tags) {
       foreach ($tags as $key => $value) {
         if ($value != FALSE) {
           $values = [
@@ -240,13 +241,16 @@ class TagsForm extends FormBase {
             ->loadByProperties(['name' => $value, 'vid' => $tags_type_id])) {
             $term = Term::create($values);
             $term->save();
-            $node->$field[] = $term;
           }
+          else {
+            $term = reset($term);
+          }
+          $tids[] = $term->id();
         }
       }
     };
 
-    foreach ($values['entities'] as $key => $value) {
+    foreach ($selected_tags['entities'] as $key => $value) {
       foreach ($value as $entity_id => $entity_value) {
         if ($entity_value != FALSE) {
           $key_id = $term = $this->entityTypeManager->getStorage('taxonomy_term')
@@ -261,11 +265,15 @@ class TagsForm extends FormBase {
             ->loadByProperties(['name' => $entity_value])) {
             $term = Term::create($values);
             $term->save();
-            $node->$field[] = $term;
           }
+          else {
+            $term = reset($term);
+          }
+          $tids[] = $term->id();
         }
       }
     };
+    $node->$field = $tids;
     $node->save();
   }
 
