@@ -80,13 +80,13 @@ class TagsForm extends FormBase {
       drupal_set_message(t('No API key has been set. Click <a href=":key_page">here</a> to set it.', [
         ':key_page' => Url::fromRoute('opencalais_ui.general_settings')
           ->toString()
-      ]), 'error');
+      ]), 'warning');
     }
     else if (!$node_type->getThirdPartySetting('opencalais_ui', 'field')) {
       drupal_set_message(t('No Open Calais field has been set. Click <a href=":key_page">here</a> to set it.', [
         ':key_page' => Url::fromRoute('entity.node_type.edit_form', ['node_type' => $type])
           ->toString()
-      ]), 'error');
+      ]), 'warning');
     }
     else {
       // Get the view builder and build the node view in 'content'.
@@ -127,7 +127,7 @@ class TagsForm extends FormBase {
             $text .= $node->get($field_name)->value;
           }
         };
-        $result = $this->calaisService->analyze($text);
+        $result = $this->calaisService->analyze($text, $form_state->getValue('language'));
 
         // Build checkboxes for aboutness tags.
         $form['open_calais']['aboutness_tags']['social_tags'] = $this->buildCheckBoxes($result['social_tags'], 'Social', 'importance');
@@ -154,7 +154,27 @@ class TagsForm extends FormBase {
           'id' => 'opencalais-suggested-tags',
         ],
       ];
-
+      $form['open_calais']['config'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Configuration'),
+        '#open' => FALSE,
+      ];
+      // If the language module is enabled then allow the user to select the
+      // language that will be used to analyze the text.
+      if (\Drupal::moduleHandler()->moduleExists('language')) {
+        $languages = \Drupal::languageManager()->getLanguages();
+        $language_options = [];
+        foreach ($languages as $langcode => $language) {
+          $language_options[$language->getName()] = $language->getName();
+        }
+        $form['open_calais']['config']['language'] = [
+          '#type' => 'select',
+          '#title' => $this->t('Language'),
+          '#options' => $language_options,
+          '#default_value' => \Drupal::languageManager()->getCurrentLanguage()->getName(),
+          '#description' => $this->t('The language that will be used to analyze the node.'),
+        ];
+      }
       $form['actions'] = [
         '#type' => 'actions',
         '#weight' => 999,

@@ -47,7 +47,7 @@ function opencalais_ui_form_node_type_form_alter(&$form, FormStateInterface $for
   }
 
   if ($options == []) {
-    drupal_set_message('The content type has no taxonomy fields available. Please add one to use Open Calais.', 'error');
+    drupal_set_message('The content type has no taxonomy fields available. Please add one to use Open Calais.', 'warning');
   }
   if ($options) {
     $form['opencalais_field'] = [

@@ -35,12 +35,8 @@ class CalaisService {
    */
   protected $parameters = [
     'protocol' => 'https',
-    'contentType' => 'TEXT/HTML',
-    'outputFormat' => 'XML/RDF',
-    'externalID' => '',
     'submitter' => 'Drupal',
     'calculateRelevanceScore' => 'true',
-    'enableMetadataType' => 'person, SocialTags',
     'allowSearch' => 'false',
     'allowDistribution' => 'false',
     'caller' => 'Drupal',
@@ -76,30 +72,20 @@ class CalaisService {
   }
 
   /**
-   * Analyze the provided content, passing it to Calais in HTML format.
-   *
-   * @param $content
-   *   The HTML content to process
-   * @return array
-   *   The processed Calais results.
-   */
-  public function analyzeHTML($content) {
-    $this->parameters['contentType'] = 'text/html';
-    return $this->analyze($content);
-  }
-
-  /**
    * Analyze the content via Calais.
    *
    * @param $content
    *   The content to ship off to Calais for analysis
+   * @param string $language
+   *   The language in which the text will be analyzed.
    * @return array
    *   The processed Calais results.
    */
-  public function analyze($content) {
+  public function analyze($content, $language = 'English') {
     $headers = [
       'Content-Type' => 'text/html',
       'x-ag-access-token' => $this->config->get('api_key'),
+      'x-calais-language' => $language,
       'outputFormat' => 'application/json',
     ];
     $uri = $this->parameters['protocol'] . '://' . $this->parameters['host'] . $this->path;
