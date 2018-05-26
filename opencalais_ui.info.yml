@@ -6,3 +6,4 @@ package: Open Calais
 dependencies:
   - drupal:path
   - drupal:taxonomy
+configure: opencalais_ui.general_settings
