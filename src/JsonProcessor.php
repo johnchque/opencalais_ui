@@ -131,7 +131,7 @@ class JsonProcessor {
     $entity_type = $data['_type'];
     $entity_value = [
       'name' => $data['name'],
-      'confidence' => $data['confidencelevel']
+      'relevance' => $data['relevance']
     ];
     $this->keywords['entities'][$entity_type][] = $entity_value;
   }

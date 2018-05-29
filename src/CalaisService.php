@@ -115,4 +115,19 @@ class CalaisService {
     return FALSE;
   }
 
+  /**
+   * Gets the score attributes for each tag type.
+   *
+   * @return array
+   *   A keyed list of the score attributes.
+   */
+  public function getScoreAttributesList() {
+    return [
+      'social_tags' => 'importance',
+      'topic_tags' => 'score',
+      'industry_tags' => 'relevance',
+      'entities' => 'relevance'
+    ];
+  }
+
 }

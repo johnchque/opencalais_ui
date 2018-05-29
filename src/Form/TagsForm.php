@@ -130,21 +130,32 @@ class TagsForm extends FormBase {
         $result = $this->calaisService->analyze($text, $form_state->getValue('language'));
 
         // Build checkboxes for aboutness tags.
-        $form['open_calais']['aboutness_tags']['social_tags'] = $this->buildCheckBoxes($result['social_tags'], 'Social', 'importance');
-        $form['open_calais']['aboutness_tags']['topic_tags'] = $this->buildCheckBoxes($result['topic_tags'], 'Topic', 'score');
-        $form['open_calais']['aboutness_tags']['industry_tags'] = $this->buildCheckBoxes($result['industry_tags'], 'Industry', 'relevance');
+        $social_tags_wrapper = [
+          '#type' => 'item',
+          '#title' => $this->t('Social tags')
+        ];
+        $social_tags = $this->buildCheckBoxes($result['social_tags'], 'social_tags', 'importance');
+        $form['open_calais']['aboutness_tags']['social_tags'] = array_merge($social_tags_wrapper, $social_tags);
+        $topic_tags_wrapper = [
+          '#type' => 'item',
+          '#title' => $this->t('Topic tags')
+        ];
+        $topic_tags = $this->buildCheckBoxes($result['topic_tags'], 'topic_tags', 'score');
+        $form['open_calais']['aboutness_tags']['topic_tags'] = array_merge($topic_tags_wrapper, $topic_tags);
+        $industry_tags_wrapper = [
+          '#type' => 'item',
+          '#title' => $this->t('Industry tags')
+        ];
+        $industry_tags = $this->buildCheckBoxes($result['industry_tags'], 'industry_tags', 'relevance');
+        $form['open_calais']['aboutness_tags']['industry_tags'] = array_merge($industry_tags_wrapper, $industry_tags);
 
-        $entities_options = [];
         foreach ($result['entities'] as $key => $value) {
-          foreach ($value as $entity_value) {
-            $entities_options[$entity_value['name']] = $entity_value['name'] . ' (' . $entity_value['confidence'] . ')';
-          }
-          $form['open_calais']['entities'][$key] = [
-            '#type' => 'checkboxes',
-            '#title' => $this->t($key),
-            '#options' => $entities_options,
+          $entities_wrapper = [
+            '#type' => 'item',
+            '#title' => $this->t($key)
           ];
-          $entities_options = [];
+          $entities = $this->buildCheckBoxes($value, 'entities', 'relevance');
+          $form['open_calais']['entities'][$key] = array_merge($entities_wrapper, $entities);
         }
       }
       // Add a submit button. Give it a class for easy JavaScript targeting.
@@ -221,22 +232,27 @@ class TagsForm extends FormBase {
   public function buildCheckBoxes($result, $name, $relevance) {
     // If there are no options show a message of empty.
     if ($result === NULL) {
-      $form = [
-        '#type' => 'item',
-        '#title' => $this->t($name . ' tags'),
-        '#markup' => t('No ' . $name . ' tags returned.')
+      $form['empty'] = [
+        '#type' => 'markup',
+        '#markup' => $this->t('No tags returned.')
       ];
     }
     else {
-      $social_tags = [];
       foreach ($result as $key => $value) {
-        $social_tags[$key] = $value['name'] . ' (' . $value[$relevance] . ')';
+        $form[$value['name']] = [
+          '#type' => 'container'
+        ];
+        $form[$value['name']]['enable'] = [
+          '#type' => 'checkbox',
+          '#title' => $this->t($value['name']),
+          '#title_display' => 'after',
+        ];
+        $form[$value['name']]['score'] = [
+          '#type' => 'opencalais_ui_relevance_bar',
+          '#tag_type' => $name,
+          '#score' => $value[$relevance],
+        ];
       }
-      $form = [
-        '#type' => 'checkboxes',
-        '#title' => $this->t($name . ' tags'),
-        '#options' => $social_tags,
-      ];
     }
     return $form;
   }
@@ -252,13 +268,13 @@ class TagsForm extends FormBase {
     $tids = [];
     foreach ($selected_tags['aboutness_tags'] as $tags_type_id => $tags) {
       foreach ($tags as $key => $value) {
-        if ($value != FALSE) {
+        if ($value['enable'] == TRUE) {
           $values = [
             'name' => $key,
             'vid' => $tags_type_id,
           ];
           if (!$term = $this->entityTypeManager->getStorage('taxonomy_term')
-            ->loadByProperties(['name' => $value, 'vid' => $tags_type_id])) {
+            ->loadByProperties(['name' => $key, 'vid' => $tags_type_id])) {
             $term = Term::create($values);
             $term->save();
           }
@@ -272,7 +288,7 @@ class TagsForm extends FormBase {
 
     foreach ($selected_tags['entities'] as $key => $value) {
       foreach ($value as $entity_id => $entity_value) {
-        if ($entity_value != FALSE) {
+        if ($entity_value['enable'] == TRUE) {
           $key_id = $term = $this->entityTypeManager->getStorage('taxonomy_term')
             ->loadByProperties(['name' => $key]);
           $values = [
@@ -282,7 +298,7 @@ class TagsForm extends FormBase {
           ];
           // If the term has been added already to the entity, skip it.
           if (!$term = $this->entityTypeManager->getStorage('taxonomy_term')
-            ->loadByProperties(['name' => $entity_value])) {
+            ->loadByProperties(['name' => $entity_id])) {
             $term = Term::create($values);
             $term->save();
           }
@@ -293,7 +309,12 @@ class TagsForm extends FormBase {
         }
       }
     };
-    $node->$field = $tids;
+    foreach ($node->get($field)->getValue() as $taxonomy_term) {
+      if ($taxonomy_term['target_id']) {
+        $tids[] = $taxonomy_term['target_id'];
+      }
+    }
+    $node->$field = array_unique($tids);
     $node->save();
   }
 

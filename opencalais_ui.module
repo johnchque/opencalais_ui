@@ -70,3 +70,18 @@ function opencalais_ui_form_node_type_form_alter(&$form, FormStateInterface $for
 function opencalais_ui_form_node_type_form_submit($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
   $type->setThirdPartySetting('opencalais_ui', 'field', $form_state->getValue('opencalais_field'));
 }
+
+/**
+ * Implements hook_theme().
+ */
+function opencalais_ui_theme() {
+  return [
+    'opencalais_ui_relevance_bar' => [
+      'render element' => 'element',
+      'variables' => [
+        'width' => 0,
+        'count' => 0
+      ],
+    ]
+  ];
+}
